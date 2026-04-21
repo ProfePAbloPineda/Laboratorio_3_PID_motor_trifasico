@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Laboratorio 3 — Control de Velocidad con VFD ABB + PLC Delta SE + Encoder</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        :root {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --text-primary: #2c3e50;
+            --text-secondary: #5a6c7d;
+            --accent-blue: #3498db;
+            --accent-teal: #1abc9c;
+            --accent-green: #27ae60;
+            --accent-orange: #f39c12;
+            --accent-red: #e74c3c;
+            --accent-purple: #9b59b6;
+            --accent-pink: #e91e63;
+            --border-light: #e1e8ed;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        /* ==================== NAVIGATION ==================== */
+        .nav-top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-light);
+            padding: 0.6rem 1rem;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+        }
+        .nav-top-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .nav-top a {
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.35rem 0.7rem;
+            border-radius: 20px;
+            background: #f0f4f8;
+            color: var(--text-secondary);
+            transition: all 0.25s ease;
+        }
+        .nav-top a:hover {
+            background: var(--accent-blue);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* ==================== COVER ==================== */
+        .cover {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+        }
+        .cover-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 0.4rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+        }
+        .cover h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.2);
+        }
+        .cover h2 {
+            font-size: clamp(1rem, 2.5vw, 1.3rem);
+            font-weight: 300;
+            opacity: 0.9;
+            max-width: 700px;
+            line-height: 1.6;
+        }
+        .cover-stats {
+            display: flex;
+            gap: 3rem;
+            margin-top: 3rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .cover-stat { text-align: center; }
+        .cover-stat .num {
+            font-size: 2.5rem;
+            font-weight: 800;
+            display: block;
+        }
+        .cover-stat .label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.8;
+        }
+
+        /* ==================== SLIDE ==================== */
+        .slide {
+            max-width: 900px;
+            margin: 2rem auto;
+            background: var(--bg-secondary);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+        .slide-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 3px solid var(--border-light);
+        }
+        .act-number {
+            min-width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+        .slide h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            flex: 1;
+        }
+        .slide h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin: 2rem 0 0.8rem 0;
+            padding-left: 0.8rem;
+            border-left: 4px solid var(--accent-teal);
+        }
+        .slide p, .slide li {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        /* Activity colors */
+        .act1 .act-number { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .act2 .act-number { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .act3 .act-number { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .act4 .act-number { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+        .act5 .act-number { background: linear-gradient(135deg, #fa709a, #fee140); }
+        .act6 .act-number { background: linear-gradient(135deg, #30cfd0, #330867); }
+        .act7 .act-number { background: linear-gradient(135deg, #a8edea, #fed6e3); color: #333; }
+        .act8 .act-number { background: linear-gradient(135deg, #ff9a9e, #fecfef); color: #333; }
+        .act9 .act-number { background: linear-gradient(135deg, #ffecd2, #fcb69f); color: #333; }
+        .act10 .act-number { background: linear-gradient(135deg, #ff6e7f, #bfe9ff); color: #333; }
+        .act11 .act-number { background: linear-gradient(135deg, #e0c3fc, #8ec5fc); color: #333; }
+        .act12 .act-number { background: linear-gradient(135deg, #84fab0, #8fd3f4); color: #333; }
+        .act13 .act-number { background: linear-gradient(135deg, #a1c4fd, #c2e9fb); color: #333; }
+
+        /* ==================== TABLES ==================== */
+        .table-container {
+            overflow-x: auto;
+            margin: 1.2rem 0;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        thead th {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+            color: white;
+            font-weight: 600;
+            padding: 0.9rem 1rem;
+            text-align: left;
+            letter-spacing: 0.5px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        tbody td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+        tbody tr:hover { background: #f8fafb; }
+        tbody tr:nth-child(even) { background: #f8f9fa; }
+        .table-highlight td {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            font-weight: 600;
+        }
+
+        /* ==================== IMAGES ==================== */
+        .img-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .img-card {
+            background: white;
+            border: 2px solid var(--border-light);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .img-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+        .img-card img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-bottom: 2px solid var(--border-light);
+            background: #f8f9fa;
+            min-height: 220px;
+            object-fit: cover;
+        }
+        .img-card .caption {
+            padding: 1rem 1.2rem;
+            text-align: center;
+        }
+        .img-card .caption .file-tag {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+            padding: 0.25rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: white;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+        .img-card .caption .desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* ==================== CALLOUT BOXES ==================== */
+        .callout {
+            border-radius: 12px;
+            padding: 1.2rem 1.5rem;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+            display: flex;
+            gap: 0.8rem;
+            align-items: flex-start;
+        }
+        .callout .callout-icon {
+            font-size: 1.4rem;
+            min-width: 28px;
+            text-align: center;
+        }
+        .callout .callout-text { flex: 1; }
+        .callout .callout-text strong {
+            display: block;
+            margin-bottom: 0.2rem;
+            color: var(--text-primary);
+        }
+        .callout.info {
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-left: 4px solid var(--accent-blue);
+            color: #1565c0;
+        }
+        .callout.warning {
+            background: linear-gradient(135deg, #fff8e1, #ffecb3);
+            border-left: 4px solid var(--accent-orange);
+            color: #e65100;
+        }
+        .callout.success {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-left: 4px solid var(--accent-green);
+            color: #2e7d32;
+        }
+        .callout.purple {
+            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+            border-left: 4px solid var(--accent-purple);
+            color: #6a1b9a;
+        }
+
+        /* ==================== FORMULA ==================== */
+        .formula-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+        .formula-card::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            right: -20%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 70%);
+            border-radius: 50%;
+        }
+        .formula-card .formula-line {
+            font-family: 'Cambria Math', 'Times New Roman', serif;
+            font-size: 1.3rem;
+            margin: 0.6rem 0;
+            position: relative;
+        }
+        .formula-card .formula-label {
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+
+        /* ==================== BADGES ==================== */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-blue { background: #e3f2fd; color: #1565c0; }
+        .badge-green { background: #e8f5e9; color: #2e7d32; }
+        .badge-red { background: #ffebee; color: #c62828; }
+        .badge-yellow { background: #fff8e1; color: #f57f17; }
+        .badge-purple { background: #f3e5f5; color: #6a1b9a; }
+
+        .text-blue { color: var(--accent-blue); font-weight: 600; }
+        .text-green { color: var(--accent-green); font-weight: 600; }
+        .text-red { color: var(--accent-red); font-weight: 600; }
+
+        /* ==================== INFO CARDS ==================== */
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        .info-card {
+            background: white;
+            border: 2px solid var(--border-light);
+            border-radius: 14px;
+            padding: 1.3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .info-card:hover {
+            border-color: var(--accent-teal);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+        .info-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .info-card .card-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.3rem;
+        }
+        .info-card .card-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .info-card .card-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.3rem;
+        }
+
+        /* ==================== TWO COL ==================== */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1rem 0;
+        }
+        .col-box {
+            background: white;
+            border: 2px solid var(--border-light);
+            border-radius: 14px;
+            padding: 1.5rem;
+        }
+        .col-box h4 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* ==================== STEP LIST ==================== */
+        .step-list {
+            list-style: none;
+            counter-reset: step;
+            padding: 0;
+        }
+        .step-list li {
+            counter-increment: step;
+            padding: 1rem 1rem 1rem 4rem;
+            position: relative;
+            border-bottom: 1px solid var(--border-light);
+            background: linear-gradient(135deg, #fafbfc, white);
+            border-radius: 12px;
+            margin-bottom: 0.6rem;
+            transition: all 0.2s ease;
+        }
+        .step-list li:hover {
+            background: linear-gradient(135deg, #f0f7ff, white);
+            transform: translateX(4px);
+        }
+        .step-list li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0.9rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2.2rem;
+            height: 2.2rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            box-shadow: var(--shadow-sm);
+        }
+        .step-list li:last-child { border-bottom: none; }
+
+        /* ==================== PROGRESS ==================== */
+        .progress-bar {
+            height: 8px;
+            background: #e1e8ed;
+            border-radius: 4px;
+            margin: 0.6rem 0;
+            overflow: hidden;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        .fill-23 { width: 23%; background: linear-gradient(90deg, #9b59b6, #8e44ad); }
+        .fill-67 { width: 67%; background: linear-gradient(90deg, #27ae60, #1abc9c); }
+
+        /* ==================== CHECKLIST ==================== */
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 0.8rem 0 0.8rem 2.6rem;
+            position: relative;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .checklist li::before {
+            content: '☐';
+            position: absolute;
+            left: 0.6rem;
+            font-size: 1.2rem;
+            color: var(--accent-teal);
+        }
+        .checklist li .file-tag {
+            margin-left: auto;
+            font-size: 0.75rem;
+        }
+
+        .separator {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+            margin: 2rem 0;
+        }
+
+        /* ==================== NAVIGATION ARROWS ==================== */
+        .nav-arrows {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid var(--border-light);
+        }
+        .nav-arrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+        }
+        .nav-arrow:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .nav-arrow.prev { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+        .nav-progress {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* ==================== ARCHITECTURE ==================== */
+        .arch-diagram {
+            background: linear-gradient(135deg, #f8f9fa, white);
+            border: 2px solid var(--border-light);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            text-align: center;
+        }
+        .arch-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin: 0.6rem 0;
+            flex-wrap: wrap;
+        }
+        .arch-box {
+            background: white;
+            border: 2px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 0.9rem 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+        }
+        .arch-box.setpoint {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-color: var(--accent-green);
+            color: #2e7d32;
+        }
+        .arch-box.output {
+            background: linear-gradient(135deg, #ffebee, #ffcdd2);
+            border-color: var(--accent-red);
+            color: #c62828;
+        }
+        .arch-box.sensor {
+            background: linear-gradient(135deg, #f3e5f5, #e1bee7);
+            border-color: var(--accent-purple);
+            color: #6a1b9a;
+        }
+        .arch-arrow {
+            color: var(--text-secondary);
+            font-size: 1.3rem;
+        }
+
+        /* ==================== FOOTER ==================== */
+        footer {
+            text-align: center;
+            padding: 3rem 2rem;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.8);
+            background: rgba(0,0,0,0.2);
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 700px) {
+            .two-col { grid-template-columns: 1fr; }
+            .img-grid { grid-template-columns: 1fr; }
+            .slide { padding: 2rem 1.5rem; margin: 1rem; }
+            .cover-stats { gap: 2rem; }
+            .nav-arrow span { display: none; }
+        }
+        @media print {
+            .slide { break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+            body { background: white; }
+            .nav-top, .nav-arrows { display: none; }
+            .cover { background: white; color: black; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ==================== TOP NAVIGATION ==================== -->
+<nav class="nav-top">
+    <div class="nav-top-content">
+        <a href="#cover">🏠 Inicio</a>
+        <a href="#act1">Act.1</a>
+        <a href="#act2">Act.2</a>
+        <a href="#act3">Act.3</a>
+        <a href="#act4">Act.4</a>
+        <a href="#act5">Act.5</a>
+        <a href="#act6">Act.6</a>
+        <a href="#act7">Act.7</a>
+        <a href="#act8">Act.8</a>
+        <a href="#act9">Act.9</a>
+        <a href="#act10">Act.10</a>
+        <a href="#act11">Act.11</a>
+        <a href="#act12">Act.12</a>
+        <a href="#act13">Act.13</a>
+        <a href="#summary">✅</a>
+    </div>
+</nav>
+
+<!-- ==================== COVER ==================== -->
+<section class="cover" id="cover">
+    <div class="cover-badge">Guía de Laboratorio 3</div>
+    <h1>Control de Velocidad en Lazo Cerrado<br>VFD ABB + PLC Delta SE + Encoder</h1>
+    <h2>Control de velocidad de motor trifásico mediante señal analógica 0–10 V desde módulo DVP06XA, con retroalimentación de encoder incremental y sintonía PID por método de Smith</h2>
+    <div class="cover-stats">
+        
+    </div>
+</section>
+
+<!-- ==================== OBJETIVOS ==================== -->
+<section class="slide" id="objectives">
+    <div class="slide-header">
+        <div class="act-number" style="background: linear-gradient(135deg, #667eea, #764ba2);">🎯</div>
+        <h2>Objetivos de la Práctica</h2>
+    </div>
+
+    <ol class="step-list">
+        <li><strong>Configurar el VFD ABB</strong> para arranque por señal discreta y control de frecuencia por señal analógica 0–10 V.</li>
+        <li><strong>Conectar el PLC Delta SE al VFD ABB</strong> mediante salida digital Y20 y módulo analógico DVP06XA.</li>
+        <li><strong>Programar en ISPSoft</strong> el control de arranque/paro (Y20/M0) y escritura del módulo 06XA desde registro D40.</li>
+        <li><strong>Diseñar pantalla HMI</strong> para carga de setpoint (D40), arranque/paro (M0) y monitoreo de velocidad.</li>
+        <li><strong>Incorporar el encoder</strong> y escalar las RPM ajustando el tiempo de muestreo SPD.</li>
+        <li><strong>Incorporar la lectura de RPM en la HMI</strong> para visualización en tiempo real.</li>
+        <li><strong>Estudiar la función PID</strong> del manual Delta para CPU SE e incorporarla al programa.</li>
+        <li><strong>Cerrar el lazo de control</strong>: entrada = RPM medida, salida = D40 (señal analógica al VFD).</li>
+        <li><strong>Sintonizar el PID</strong> siguiendo el método práctico del manual del PLC.</li>
+        <li><strong>Encontrar el 67 % y 23 %</strong> del tiempo de establecimiento a velocidad nominal.</li>
+        <li><strong>Estudiar el método de sintonía de Smith</strong> (dos puntos específicos).</li>
+        <li><strong>Sintonizar el PID con criterios de Smith</strong> y comparar resultados.</li>
+        <li><strong>Redactar informe técnico</strong> con análisis completo de resultados.</li>
+    </ol>
+
+    
+    
+
+    <div class="nav-arrows">
+        <span class="nav-progress">Inicio</span>
+        <a href="#act1" class="nav-arrow">
+            <span>Comenzar</span> →
+        </a>
+    </div>
+</section>
+
+<!-- ==================== ACT 1 ==================== -->
+<section class="slide act1" id="act1">
+    <div class="slide-header">
+        <div class="act-number">01</div>
+        <h2>Configurar el VFD ABB — Arranque por Señal Discreta + Frecuencia 0–10 V</h2>
+    </div>
+
+    <h3>📋 Objetivo</h3>
+    <p>Configurar el variador de frecuencia ABB para que:</p>
+    <ul>
+        <li>La <strong>activación/paro</strong> del motor se controle por una señal discreta (contacto seco) en el borne de control del VFD.</li>
+        <li>La <strong>frecuencia de salida</strong> sea determinada por una señal analógica de <span class="text-blue">0 V a 10 V</span> aplicada al borne analógico AI1 del VFD.</li>
+    </ul>
+
+    <h3>🔧 Pasos de Configuración en el Panel del VFD ABB</h3>
+    <ol class="step-list">
+        <li>Acceder al menú de parámetros del VFD ABB desde el panel de operación.</li>
+        <li>Configurar el <strong>grupo de arranque/paro</strong>: seleccionar <span class="badge badge-green">Arranque por borne digital</span> (DI1).</li>
+        <li>Configurar el <strong>grupo de referencia de frecuencia</strong>: seleccionar <span class="badge badge-blue">AI1 (0–10 V)</span> como fuente de referencia.</li>
+        <li>Establecer la <strong>frecuencia mínima</strong> (0 Hz) y <strong>frecuencia máxima</strong> (50 Hz).</li>
+        <li>Verificar que la <strong>curva V/f</strong> esté configurada correctamente para el motor.</li>
+        <li>Guardar la configuración y verificar el estado de los parámetros.</li>
+    </ol>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Parámetro ABB</th><th>Valor Configurado</th><th>Descripción</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Start/Stop Source</td><td>DI1 (bornero)</td><td>Arranque por contacto seco</td></tr>
+                <tr><td>Frequency Reference</td><td>AI1 (0–10 V)</td><td>Referencia de frecuencia analógica</td></tr>
+                <tr><td>AI1 Minimum</td><td>0.0 V</td><td>Corresponde a 0 Hz</td></tr>
+                <tr><td>AI1 Maximum</td><td>10.0 V</td><td>Corresponde a 50 Hz (f<sub>max</sub>)</td></tr>
+                <tr><td>Min Frequency</td><td>0 Hz</td><td>Frecuencia mínima de salida</td></tr>
+                <tr class="table-highlight"><td>Max Frequency</td><td>50 Hz</td><td>Frecuencia máxima de salida</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="img-card" style="max-width: 600px; margin: 1.5rem auto;">
+        <img src="1.PNG" alt="Configuración de parámetros del VFD ABB desde el panel de operación" width="500" height="300">
+        <div class="caption">
+            <div class="file-tag">1.PNG</div>
+            <p class="desc">Captura del panel del VFD ABB mostrando los parámetros de configuración.</p>
+        </div>
+    </div>
+
+    <div class="callout warning">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-text">
+            <strong>Seguridad</strong>
+            Verificar que el motor esté correctamente acoplado y que no haya personas cerca del eje antes de realizar pruebas de arranque. Asegurar que la rampa de aceleración esté configurada (ej. 3–5 segundos) para evitar corrientes de arranque excesivas.
+        </div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#objectives" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 1 de 13</span>
+        <a href="#act2" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 2 ==================== -->
+<section class="slide act2" id="act2">
+    <div class="slide-header">
+        <div class="act-number">02</div>
+        <h2>Conexión del PLC Delta SE al VFD ABB</h2>
+    </div>
+
+    <h3>🔌 Esquema de Conexión</h3>
+    <p>Se realizan dos tipos de conexión entre el PLC y el VFD ABB:</p>
+
+    <div class="two-col">
+        <div class="col-box" style="border-left: 4px solid #27ae60;">
+            <h4>🟢 Señal Discreta (Arranque/Paro)</h4>
+            <ul style="font-size:0.85rem;">
+                <li><strong>Salida Y20</strong> del PLC → Borne <strong>DI1</strong> del VFD</li>
+                <li><strong>COM</strong> del PLC → Borne <strong>COM</strong> del VFD</li>
+                <li>Relé de salida (Y20) cierra contacto → VFD recibe señal de arranque</li>
+            </ul>
+        </div>
+        <div class="col-box" style="border-left: 4px solid #3498db;">
+            <h4>🔵 Señal Analógica (Frecuencia)</h4>
+            <ul style="font-size:0.85rem;">
+                <li><strong>Salida VO1+</strong> del módulo <strong>DVP06XA</strong> → Borne <strong>AI1+</strong> del VFD</li>
+                <li><strong>Salida VO1−</strong> del módulo <strong>DVP06XA</strong> → Borne <strong>AI1−</strong> del VFD</li>
+                <li>Rango: 0 V → 0 Hz | 10 V → 50 Hz</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>📊 Mapeo del Módulo DVP06XA</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Canal</th><th>Tipo</th><th>Rango</th><th>Registro PLC</th><th>Destino VFD</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>VO1 (Ch4)</td><td>Salida Analógica</td><td>0 – 10 V DC</td><td>D40 (valor 0–4000)</td><td>AI1 (referencia frecuencia)</td></tr>
+                <tr><td>Y20</td><td>Salida Discreta</td><td>Relé / Transistor</td><td>Y20</td><td>DI1 (start/stop)</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout info">
+        <div class="callout-icon">💡</div>
+        <div class="callout-text">
+            <strong>Escala del módulo DVP06XA</strong>
+            Para salida 0–10 V, el valor digital del PLC se escribe en el registro asociado al canal de salida. En el DVP06XA, el valor <strong>0–4000</strong> corresponde a <strong>0–10 V</strong>. Es decir, D40 = 4000 → 10 V → 50 Hz; D40 = 2000 → 5 V → 25 Hz.
+        </div>
+    </div>
+
+    <div class="img-grid">
+        <div class="img-card">
+            <img src="2.PNG" alt="Diagrama de conexión entre PLC Delta SE salida Y20 y borne DI1 del VFD ABB" width="500" height="300">
+            <div class="caption">
+                <div class="file-tag">2.PNG</div>
+                <p class="desc">Conexión Y20 → DI1 (señal discreta de arranque/paro).</p>
+            </div>
+        </div>
+        <div class="img-card">
+            <img src="3.PNG" alt="Conexión del módulo DVP06XA salida analógica VO1 al borne AI1 del VFD ABB" width="500" height="300">
+            <div class="caption">
+                <div class="file-tag">3.PNG</div>
+                <p class="desc">Conexión DVP06XA VO1 → AI1 (señal analógica 0–10 V de frecuencia).</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#act1" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 2 de 13</span>
+        <a href="#act3" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 3 ==================== -->
+<section class="slide act3" id="act3">
+    <div class="slide-header">
+        <div class="act-number">03</div>
+        <h2>Programa en ISPSoft — Control Y20 y Escritura del Módulo 06XA</h2>
+    </div>
+
+    <h3>🎯 Lógica del Programa</h3>
+    <ul>
+        <li>La salida <span class="badge badge-green">Y20</span> se activa cuando se acciona <span class="badge badge-blue">M0</span> (arranque).</li>
+        <li>Se escribe el registro del canal de salida del módulo <span class="badge badge-yellow">DVP06XA</span> con el contenido de <span class="badge badge-purple">D40</span>.</li>
+        <li>D40 se carga previamente con el valor <strong>4000</strong> (equivale a 10 V → 50 Hz).</li>
+    </ul>
+
+    <h3>💻 Código Ladder — Control de Arranque y Escritura Analógica</h3>
+
+    <div class="img-card" style="max-width: 700px; margin: 1.5rem auto;">
+        <img src="4.PNG" alt="Programa Ladder en ISPSoft con control de Y20 por M0 y escritura del módulo DVP06XA con D40" width="500" height="300">
+        <div class="caption">
+            <div class="file-tag">4.PNG</div>
+            <p class="desc">Programa Ladder en ISPSoft — control Y20 y escritura del módulo 06XA con D40.</p>
+        </div>
+    </div>
+
+    <h3>📐 Escala de Conversión</h3>
+    <div class="formula-card">
+        <div class="formula-label">Relación D40 → Voltaje → Frecuencia</div>
+        <div class="formula-line">D40 = 0 &nbsp;&nbsp;→&nbsp;&nbsp; 0 V &nbsp;&nbsp;→&nbsp;&nbsp; 0 Hz</div>
+        <div class="formula-line">D40 = 2000 &nbsp;&nbsp;→&nbsp;&nbsp; 5 V &nbsp;&nbsp;→&nbsp;&nbsp; 25 Hz</div>
+        <div class="formula-line">D40 = 4000 &nbsp;&nbsp;→&nbsp;&nbsp; 10 V &nbsp;&nbsp;→&nbsp;&nbsp; 50 Hz</div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Valor D40</th><th>Voltaje Salida</th><th>Frecuencia VFD</th><th>RPM Esperadas*</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>0</td><td>0 V</td><td>0 Hz</td><td>0 RPM</td></tr>
+                <tr><td>1000</td><td>2.5 V</td><td>12.5 Hz</td><td>375 RPM</td></tr>
+                <tr><td>2000</td><td>5 V</td><td>25 Hz</td><td>750 RPM</td></tr>
+                <tr><td>3000</td><td>7.5 V</td><td>37.5 Hz</td><td>1125 RPM</td></tr>
+                <tr class="table-highlight"><td><strong>4000</strong></td><td><strong>10 V</strong></td><td><strong>50 Hz</strong></td><td><strong>1500 RPM</strong></td></tr>
+            </tbody>
+        </table>
+    </div>
+    <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.5rem;">* Motor de 4 polos, deslizamiento despreciado para cálculo teórico.</p>
+
+    <div class="nav-arrows">
+        <a href="#act2" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 3 de 13</span>
+        <a href="#act4" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 4 ==================== -->
+<section class="slide act4" id="act4">
+    <div class="slide-header">
+        <div class="act-number">04</div>
+        <h2>Diseño de Pantalla HMI Minimalista — Control desde HMI</h2>
+    </div>
+
+    <h3>📺 Requerimientos de la Pantalla</h3>
+    <ul>
+        <li><strong>Entrada numérica</strong> para cargar el registro D40 (setpoint de frecuencia).</li>
+        <li><strong>Botón de arranque</strong> para activar M0.</li>
+        <li><strong>Botón de paro</strong> para desactivar M0.</li>
+        <li><strong>Indicador de estado</strong> del motor (M0 activo/inactivo).</li>
+        <li><strong>Display del valor de D40</strong> para monitoreo.</li>
+    </ul>
+
+    <div class="two-col">
+        <div class="col-box" style="border-left: 4px solid #27ae60;">
+            <h4>🟢 Elementos de Entrada</h4>
+            <ul style="font-size:0.85rem;">
+                <li><strong>Numeric Input</strong> → D40 (rango 0–4000)</li>
+                <li><strong>Push Button (NO)</strong> → SET M0</li>
+                <li><strong>Push Button (NC)</strong> → RST M0</li>
+            </ul>
+        </div>
+        <div class="col-box" style="border-left: 4px solid #3498db;">
+            <h4>🔵 Elementos de Display</h4>
+            <ul style="font-size:0.85rem;">
+                <li><strong>Numeric Display</strong> → D40 (valor actual)</li>
+                <li><strong>Lamp/Indicator</strong> → M0 (estado ON/OFF)</li>
+                <li><strong>Label</strong> → Frecuencia [Hz]</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>🎨 Distribución Propuesta de la Pantalla</h3>
+    <div class="arch-diagram" style="text-align:left; padding:1.5rem;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <div>
+                <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;color:#1abc9c;margin-bottom:0.5rem;">SETPOINT</div>
+                <div style="background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border:2px solid #27ae60;border-radius:12px;padding:1rem;text-align:center;">
+                    <div style="font-size:1.5rem;font-weight:800;color:#27ae60;">D40</div>
+                    <div style="font-size:0.75rem;color:#5a6c7d;margin-top:0.3rem;">[ Numeric Input ]</div>
+                    <div style="font-size:0.7rem;color:#5a6c7d;">0 – 4000 → 0 – 50 Hz</div>
+                </div>
+            </div>
+            <div>
+                <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;color:#3498db;margin-bottom:0.5rem;">CONTROL</div>
+                <div style="display:flex;gap:0.5rem;">
+                    <div style="flex:1;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border:2px solid #27ae60;border-radius:10px;padding:0.8rem;text-align:center;font-size:0.8rem;font-weight:700;color:#27ae60;">▶ START<br><small style="font-weight:400;color:#5a6c7d;">SET M0</small></div>
+                    <div style="flex:1;background:linear-gradient(135deg,#ffebee,#ffcdd2);border:2px solid #e74c3c;border-radius:10px;padding:0.8rem;text-align:center;font-size:0.8rem;font-weight:700;color:#e74c3c;">⏹ STOP<br><small style="font-weight:400;color:#5a6c7d;">RST M0</small></div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:1rem;background:linear-gradient(135deg,#f3e5f5,#e1bee7);border:2px solid #9b59b6;border-radius:10px;padding:0.6rem;text-align:center;font-size:0.85rem;">
+            <span style="color:#9b59b6;">●</span> Estado Motor: <strong>OFF</strong> &nbsp;&nbsp;|&nbsp;&nbsp;
+            Frecuencia: <strong>__ Hz</strong>
+        </div>
+    </div>
+
+    <div class="img-card" style="max-width: 600px; margin: 1.5rem auto;">
+        <img src="5.PNG" alt="Pantalla HMI minimalista con entrada numérica para D40, botones de arranque y paro, e indicador de estado" width="500" height="300">
+        <div class="caption">
+            <div class="file-tag">5.PNG</div>
+            <p class="desc">Pantalla HMI minimalista — control de setpoint D40, arranque/paro M0.</p>
+        </div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#act3" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 4 de 13</span>
+        <a href="#act5" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 5 ==================== -->
+<section class="slide act5" id="act5">
+    <div class="slide-header">
+        <div class="act-number">05</div>
+        <h2>Incorporar el Encoder y Escalar las RPM — Función SPD</h2>
+    </div>
+
+    <h3>📡 Configuración del Encoder en el PLC</h3>
+    <p>Se utiliza la función <span class="badge" style="background:#2c3e50;color:white;">SPD</span> (Speed Detection) para contar pulsos del encoder y calcular la velocidad de rotación.</p>
+
+    <div class="info-cards">
+        <div class="info-card">
+            <div class="icon">📐</div>
+            <div class="card-title">PPR</div>
+            <div class="card-value">1024</div>
+            <div class="card-desc">Pulsos por revolución</div>
+        </div>
+        <div class="info-card">
+            <div class="icon">🔁</div>
+            <div class="card-title">Modo</div>
+            <div class="card-value">×4</div>
+            <div class="card-desc">Cuádruple (AB ambos flancos)</div>
+        </div>
+        <div class="info-card">
+            <div class="icon">📊</div>
+            <div class="card-title">Pulsos/Rev</div>
+            <div class="card-value">4096</div>
+            <div class="card-desc">Resolución efectiva</div>
+        </div>
+        <div class="info-card">
+            <div class="icon">🔌</div>
+            <div class="card-title">Entradas</div>
+            <div class="card-value">X0, X1</div>
+            <div class="card-desc">Fase A, Fase B</div>
+        </div>
+    </div>
+
+    <h3>🔧 Ajuste del Tiempo de Muestreo SPD</h3>
+    <p>El tiempo de muestreo de SPD afecta directamente la resolución y velocidad de actualización de la lectura de RPM:</p>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Base T (ms)</th><th>Resolución (RPM)</th><th>Actualización</th><th>Uso Recomendado</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><span class="badge badge-blue">1000</span></td><td>0.015 RPM</td><td>Cada 1 s</td><td>Baja velocidad, alta precisión</td></tr>
+                <tr><td><span class="badge badge-purple">700</span></td><td>0.021 RPM</td><td>Cada 0.7 s</td><td>Compromiso general</td></tr>
+                <tr><td><span class="badge badge-yellow">300</span></td><td>0.049 RPM</td><td>Cada 0.3 s</td><td>Lazo cerrado PID</td></tr>
+                <tr class="table-highlight"><td><span class="badge badge-green">200</span></td><td>0.073 RPM</td><td>Cada 0.2 s</td><td>Respuesta rápida PID</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout info">
+        <div class="callout-icon">💡</div>
+        <div class="callout-text">
+            <strong>Recomendación para lazo cerrado PID</strong>
+            Para control PID en tiempo real, se recomienda una base de tiempo de <strong>200 ms</strong> o <strong>300 ms</strong>. Esto proporciona actualizaciones suficientemente rápidas para que el controlador PID responda adecuadamente a las variaciones de velocidad.
+        </div>
+    </div>
+
+    <h3>💻 Código Ladder — SPD y Escalado RPM</h3>
+    <div class="img-card" style="max-width: 700px; margin: 1.5rem auto;">
+        <img src="6.PNG" alt="Programa Ladder con función SPD para lectura de encoder y escalado a RPM" width="500" height="300">
+        <div class="caption">
+            <div class="file-tag">6.PNG</div>
+            <p class="desc">Programa Ladder — SPD con base de tiempo ajustable y escalado a RPM.</p>
+        </div>
+    </div>
+
+    <div class="formula-card">
+        <div class="formula-label">Escalado a RPM</div>
+        <div class="formula-line"><strong>RPM</strong> = ( D<sub>conteo</sub> × 1000 × 60 ) / ( PPR × 4 × T )</div>
+        <div class="formula-line" style="font-size:0.9rem;opacity:0.9;">Con PPR=1024, ×4, T=200 ms → RPM = D<sub>conteo</sub> × 60 / 819.2</div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#act4" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 5 de 13</span>
+        <a href="#act6" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 6 ==================== -->
+<section class="slide act6" id="act6">
+    <div class="slide-header">
+        <div class="act-number">06</div>
+        <h2>Incorporar Lectura de RPM en la Pantalla HMI</h2>
+    </div>
+
+    <h3>📺 Actualización de la Pantalla HMI</h3>
+    <p>Se agrega a la pantalla HMI un <strong>display numérico</strong> que muestre en tiempo real el valor de las RPM calculadas a partir del encoder.</p>
+
+    <div class="two-col">
+        <div class="col-box" style="border-left: 4px solid #9b59b6;">
+            <h4>📝 Registro para RPM</h4>
+            <ul style="font-size:0.85rem;">
+                <li><strong>D220</strong> = RPM en punto flotante (resultado del escalado)</li>
+                <li>Formato: <strong>Real (DINT/REAL)</strong></li>
+                <li>Se transfiere al HMI como <strong>numeric display</strong></li>
+            </ul>
+        </div>
+        <div class="col-box" style="border-left: 4px solid #1abc9c;">
+            <h4>🔵 Elemento HMI</h4>
+            <ul style="font-size:0.85rem;">
+                <li><strong>Numeric Display</strong> vinculado a D220</li>
+                <li>Formato: <strong>0.0</strong> (un decimal)</li>
+                <li>Unidad: <strong>RPM</strong></li>
+                <li>Actualización: <strong>200 ms</strong></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="img-card" style="max-width: 600px; margin: 1.5rem auto;">
+        <img src="7.PNG" alt="Pantalla HMI actualizada con display de velocidad en RPM en tiempo real" width="500" height="300">
+        <div class="caption">
+            <div class="file-tag">7.PNG</div>
+            <p class="desc">Pantalla HMI con display de velocidad en RPM incorporado.</p>
+        </div>
+    </div>
+
+    <div class="img-card" style="max-width: 600px; margin: 1.5rem auto;">
+        <img src="8.PNG" alt="Configuración del elemento numeric display en el software HMI vinculado al registro D220" width="500" height="300">
+        <div class="caption">
+            <div class="file-tag">8.PNG</div>
+            <p class="desc">Configuración del elemento de visualización de RPM en el software HMI.</p>
+        </div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#act5" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 6 de 13</span>
+        <a href="#act7" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 7 ==================== -->
+<section class="slide act7" id="act7">
+    <div class="slide-header">
+        <div class="act-number">07</div>
+        <h2>Estudiar la Función PID del Manual Delta para CPU SE</h2>
+    </div>
+
+    <h3>📖 Lectura del Manual</h3>
+    <p>Se debe consultar el <strong>manual de programación Delta DVP-SE</strong>, específicamente la sección de la instrucción <span class="badge" style="background:#2c3e50;color:white;">PID</span>, para comprender:</p>
+
+    <div class="two-col">
+        <div class="col-box" style="border-left: 4px solid #f39c12;">
+            <h4>📚 Parámetros del PID Delta</h4>
+            <ul style="font-size:0.85rem;">
+                <li><strong>K<sub>p</sub></strong> — Ganancia proporcional</li>
+                <li><strong>T<sub>i</sub></strong> — Tiempo integral (seg)</li>
+                <li><strong>T<sub>d</sub></strong> — Tiempo derivativo (seg)</li>
+                <li><strong>ΔT</strong> — Tiempo de muestreo del PID</li>
+                <li><strong>SV</strong> — Setpoint (valor deseado)</li>
+                <li><strong>PV</strong> — Process Variable (valor medido)</li>
+                <li><strong>MV</strong> — Manipulated Variable (salida)</li>
+            </ul>
+        </div>
+        <div class="col-box" style="border-left: 4px solid #e91e63;">
+            <h4>📋 Registros del PID</h4>
+            <ul style="font-size:0.85rem;">
+                <li><strong>D800</strong> — Parámetros PID (K<sub>p</sub>, T<sub>i</sub>, T<sub>d</sub>)</li>
+                <li><strong>D810</strong> — Setpoint (SV)</li>
+                <li><strong>D820</strong> — Variable de proceso (PV)</li>
+                <li><strong>D830</strong> — Salida manipulada (MV)</li>
+                <li><strong>M8xx</strong> — Banderas de estado</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>🔍 Puntos Clave a Investigar</h3>
+    <ol class="step-list">
+        <li>Identificar la <strong>sintaxis exacta</strong> de la instrucción PID en ISPSoft para la CPU SE.</li>
+        <li>Determinar los <strong>registros de memoria</strong> asociados a cada parámetro del PID.</li>
+        <li>Verificar el <strong>rango de valores</strong> permitidos para K<sub>p</sub>, T<sub>i</sub> y T<sub>d</sub>.</li>
+        <li>Identificar el <strong>método de sintonía automática</strong> propuesto por Delta.</li>
+        <li>Revisar las <strong>limitaciones</strong> del PID (windup, rango de salida, etc.).</li>
+    </ol>
+
+    <div class="callout purple">
+        <div class="callout-icon">📚</div>
+        <div class="callout-text">
+            <strong>Referencia</strong>
+            Consultar: <em>"Delta DVP-SE Series PLC Programming Manual"</em> — Sección de instrucciones avanzadas, bloque PID. También revisar la aplicación note AN-DVP-PID-01 de Delta Electronics.
+        </div>
+    </div>
+
+    <div class="img-card" style="max-width: 600px; margin: 1.5rem auto;">
+        <img src="9.PNG" alt="Captura del manual de programación Delta mostrando la función PID para CPU SE" width="500" height="300">
+        <div class="caption">
+            <div class="file-tag">9.PNG</div>
+            <p class="desc">Captura del manual Delta DVP-SE — sección de la función PID.</p>
+        </div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#act6" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 7 de 13</span>
+        <a href="#act8" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 8 ==================== -->
+<section class="slide act8" id="act8">
+    <div class="slide-header">
+        <div class="act-number">08</div>
+        <h2>Incorporar la Función PID — Cerrar el Lazo de Control</h2>
+    </div>
+
+    <h3>🔄 Estructura del Lazo Cerrado</h3>
+    <div class="arch-diagram">
+        <div class="arch-row">
+            <div class="arch-box setpoint">📝 SV (Setpoint)<br><small>D810 = RPM deseado</small></div>
+            <span class="arch-arrow">→</span>
+            <div class="arch-box" style="background:linear-gradient(135deg,#fff3cd,#ffeaa7);border-color:#f39c12;color:#d68910;">⚙️ PID<br><small>Delta SE</small></div>
+            <span class="arch-arrow">→</span>
+            <div class="arch-box output">📤 MV (Salida)<br><small>D830 → D40</small></div>
+        </div>
+        <div class="arch-row" style="margin-top:1rem;">
+            <div class="arch-box sensor">📡 PV (Medida)<br><small>D820 = RPM encoder</small></div>
+            <span class="arch-arrow" style="transform:scaleX(-1);">←</span>
+            <div class="arch-box" style="background:linear-gradient(135deg,#f3e5f5,#e1bee7);border-color:#9b59b6;color:#6a1b9a;">← Retroalimentación</div>
+        </div>
+    </div>
+
+    <h3>📊 Mapeo de Registros del PID</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Señal</th><th>Registro PID</th><th>Fuente/Destino</th><th>Unidad</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><span class="text-green">Setpoint (SV)</span></td><td>D810</td><td>HMI (entrada numérica) → D810</td><td>RPM</td></tr>
+                <tr><td><span class="text-blue">PV (Medida)</span></td><td>D820</td><td>SPD escalado → D820</td><td>RPM</td></tr>
+                <tr><td><span class="text-red">MV (Salida)</span></td><td>D830</td><td>D830 → D40 (módulo 06XA)</td><td>0–4000</td></tr>
+                <tr><td>Ganancia K<sub>p</sub></td><td>D800</td><td>Configurable</td><td>%</td></tr>
+                <tr><td>Tiempo integral T<sub>i</sub></td><td>D801</td><td>Configurable</td><td>ms</td></tr>
+                <tr><td>Tiempo derivativo T<sub>d</sub></td><td>D802</td><td>Configurable</td><td>ms</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>💻 Código Ladder — PID con Lazo Cerrado</h3>
+    <div class="img-card" style="max-width: 700px; margin: 1.5rem auto;">
+        <img src="10.PNG" alt="Programa Ladder con función PID cerrando el lazo: entrada RPM del encoder, salida D40 al módulo analógico" width="500" height="300">
+        <div class="caption">
+            <div class="file-tag">10.PNG</div>
+            <p class="desc">Programa Ladder — PID con lazo cerrado: PV = RPM encoder, MV = D40 (señal al VFD).</p>
+        </div>
+    </div>
+
+    <div class="callout success">
+        <div class="callout-icon">✅</div>
+        <div class="callout-text">
+            <strong>Lazo cerrado establecido</strong>
+            El PID lee las RPM del encoder (PV), compara con el setpoint (SV), calcula la acción correctiva y escribe en D40 la señal analógica que el módulo 06XA convierte a 0–10 V para el VFD ABB.
+        </div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#act7" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 8 de 13</span>
+        <a href="#act9" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 9 ==================== -->
+<section class="slide act9" id="act9">
+    <div class="slide-header">
+        <div class="act-number">09</div>
+        <h2>Ganancia Proporcional Pura — K<sub>i</sub> = 0, K<sub>d</sub> = 0</h2>
+    </div>
+
+    <h3>🎯 Procedimiento</h3>
+    <ol class="step-list">
+        <li>Establecer <span class="text-red">T<sub>i</sub> = 0</span> (acción integral deshabilitada).</li>
+        <li>Establecer <span class="text-red">T<sub>d</sub> = 0</span> (acción derivativa deshabilitada).</li>
+        <li>Seleccionar un valor inicial de <span class="text-green">K<sub>p</sub></span> (ej. 1.0, 2.0, 5.0) según recomendación del manual.</li>
+        <li>Desde la HMI, establecer un setpoint de RPM (ej. 750 RPM → 25 Hz).</li>
+        <li>Activar M0 para poner en marcha el sistema en lazo cerrado.</li>
+        <li>Observar la respuesta de velocidad en la HMI: tiempo de subida, sobreoscilación, error en estado estacionario.</li>
+        <li>Ajustar K<sub>p</sub> progresivamente hasta obtener una respuesta razonable (sin oscilación excesiva).</li>
+    </ol>
+
+    <h3>📋 Observaciones Esperadas con Solo K<sub>p</sub></h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Efecto de K<sub>p</sub></th><th>K<sub>p</sub> Bajo</th><th>K<sub>p</sub> Medio</th><th>K<sub>p</sub> Alto</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Tiempo de respuesta</td><td>Lento</td><td>Moderado</td><td>Rápido</td></tr>
+                <tr><td>Error en estado estacionario</td><td>Grande</td><td>Mediano</td><td>Pequeño</td></tr>
+                <tr><td>Sobreoscilación</td><td>Ninguna</td><td>Baja</td><td>Alta</td></tr>
+                <tr><td>Estabilidad</td><td>Estable</td><td>Estable</td><td>Puede oscilar</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="img-card" style="max-width: 600px; margin: 1.5rem auto;">
+        <img src="11.PNG" alt="Respuesta de velocidad del motor con control proporcional puro mostrando error en estado estacionario" width="500" height="300">
+        <div class="caption">
+            <div class="file-tag">11.PNG</div>
+            <p class="desc">Respuesta del sistema con control proporcional puro (K<sub>p</sub> solo, K<sub>i</sub>=0, K<sub>d</sub>=0).</p>
+        </div>
+    </div>
+
+    <div class="callout warning">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-text">
+            <strong>Nota</strong> — Con control proporcional puro siempre existirá un <strong>error en estado estacionario</strong> (offset). Este error se elimina al agregar la acción integral (T<sub>i</sub> ≠ 0).
+        </div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#act8" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 9 de 13</span>
+        <a href="#act10" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 10 ==================== -->
+<section class="slide act10" id="act10">
+    <div class="slide-header">
+        <div class="act-number">10</div>
+        <h2>Encontrar el 67 % y 23 % del Tiempo de Establecimiento</h2>
+    </div>
+
+    <h3>📐 Procedimiento</h3>
+    <ol class="step-list">
+        <li>Establecer el setpoint a la <strong>velocidad nominal</strong> del motor (ej. 1500 RPM).</li>
+        <li>Con el lazo cerrado activo (PID con K<sub>p</sub> inicial), registrar la respuesta de velocidad vs tiempo.</li>
+        <li>Calcular los valores de umbral:
+            <br><span class="text-green"><strong>V<sub>67%</sub></strong> = V<sub>nominal</sub> × 0.67</span>
+            <br><span class="text-purple"><strong>V<sub>23%</sub></strong> = V<sub>nominal</sub> × 0.23</span>
+        </li>
+        <li>Registrar el <strong>tiempo</strong> en que la velocidad cruza cada umbral.</li>
+        <li>Estos dos puntos servirán para el <strong>método de los dos puntos de Smith</strong>.</li>
+    </ol>
+
+    <h3>📊 Cálculo de Umbrales</h3>
+    <div class="formula-card">
+        <div class="formula-label">Umbrales para V<sub>nominal</sub> = 1500 RPM</div>
+        <div class="formula-line"><span style="color:#27ae60;">V<sub>67%</sub></span> = 1500 × 0.67 = <strong style="color:#27ae60;">1005 RPM</strong></div>
+        <div class="formula-line"><span style="color:#9b59b6;">V<sub>23%</sub></span> = 1500 × 0.23 = <strong style="color:#9b59b6;">345 RPM</strong></div>
+    </div>
+
+    <div class="two-col">
+        <div class="col-box" style="border-top: 4px solid #27ae60; text-align:center;">
+            <h4>🟢 67 %</h4>
+            <p style="font-size:0.85rem;">Velocidad: <strong style="color:#27ae60;">1005 RPM</strong></p>
+            <p style="font-size:0.85rem;">Tiempo: <strong>t<sub>67</sub> = ________ ms</strong></p>
+            <div class="progress-bar"><div class="fill fill-67"></div></div>
+        </div>
+        <div class="col-box" style="border-top: 4px solid #9b59b6; text-align:center;">
+            <h4>🟣 23 %</h4>
+            <p style="font-size:0.85rem;">Velocidad: <strong style="color:#9b59b6;">345 RPM</strong></p>
+            <p style="font-size:0.85rem;">Tiempo: <strong>t<sub>23</sub> = ________ ms</strong></p>
+            <div class="progress-bar"><div class="fill fill-23"></div></div>
+        </div>
+    </div>
+
+    <div class="img-card" style="max-width: 600px; margin: 1.5rem auto;">
+        <img src="12.PNG" alt="Gráfica velocidad vs tiempo con marcadores en 23% y 67% de la velocidad nominal" width="500" height="300">
+        <div class="caption">
+            <div class="file-tag">12.PNG</div>
+            <p class="desc">Gráfica de respuesta con marcadores al 23 % y 67 % de la velocidad nominal.</p>
+        </div>
+    </div>
+
+    <div class="callout info">
+        <div class="callout-icon">💡</div>
+        <div class="callout-text">
+            <strong>Importancia</strong>
+            Los puntos (t<sub>23%</sub>, 23%) y (t<sub>67%</sub>, 67%) permiten estimar los parámetros del modelo FOPDT (First Order Plus Dead Time): ganancia K, constante de tiempo τ y retardo L.
+        </div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#act9" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 10 de 13</span>
+        <a href="#act11" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 11 ==================== -->
+<section class="slide act11" id="act11">
+    <div class="slide-header">
+        <div class="act-number">11</div>
+        <h2>Método de Sintonía de Smith — Dos Puntos Específicos</h2>
+    </div>
+
+    <h3>📖 Fundamento Teórico</h3>
+    <p>El método de los dos puntos de <strong>Smith (1958)</strong> permite estimar los parámetros de un modelo <span class="text-blue">FOPDT</span> (First Order Plus Dead Time) a partir de dos puntos de la respuesta escalón del proceso:</p>
+
+    <div class="formula-card">
+        <div class="formula-label">Modelo FOPDT</div>
+        <div class="formula-line">G(s) = <strong>K · e<sup>−Ls</sup></strong> / <strong>(τ·s + 1)</strong></div>
+        <div class="formula-desc" style="margin-top:1rem;">
+            <strong>K</strong> = Ganancia del proceso &nbsp;|&nbsp;
+            <strong>τ</strong> = Constante de tiempo &nbsp;|&nbsp;
+            <strong>L</strong> = Retardo (dead time)
+        </div>
+    </div>
+
+    <h3>📐 Fórmulas del Método de Smith</h3>
+    <p>Utilizando los puntos al 28.4 % y 63.2 % de la respuesta (o 23 % y 67 % como aproximación):</p>
+
+    <div class="formula-card">
+        <div class="formula-label">Estimación de Parámetros FOPDT</div>
+        <div class="formula-line"><strong>τ</strong> = 1.5 · (t<sub>67%</sub> − t<sub>23%</sub>)</div>
+        <div class="formula-line"><strong>L</strong> = t<sub>67%</sub> − τ</div>
+        <div class="formula-line"><strong>K</strong> = ΔY<sub>estable</sub> / ΔU (ganancia estática)</div>
+    </div>
+
+    <h3>🔧 Fórmulas de Sintonía PID — Smith</h3>
+    <div class="formula-card" style="border:3px solid rgba(255,255,255,0.3);">
+        <div class="formula-label">Ganancias PID por Método de Smith</div>
+        <div class="formula-line"><strong>K<sub>c</sub></strong> = (1/K) · (τ/L + 1/3)</div>
+        <div class="formula-line"><strong>T<sub>i</sub></strong> = τ + L/3</div>
+        <div class="formula-line"><strong>T<sub>d</sub></strong> = (τ · L) / (2τ + L/3)</div>
+    </div>
+
+    <div class="callout purple">
+        <div class="callout-icon">📚</div>
+        <div class="callout-text">
+            <strong>Referencia</strong>
+            Smith, O.J.M. (1958). "Closed-loop tuning of a process controller." <em>Instrumentation and Control Systems</em>, 31(1), 118–121. También consultar: Åström & Hägglund, "PID Controllers: Theory, Design, and Tuning", 2nd Ed., 1995.
+        </div>
+    </div>
+
+   
+
+    <div class="nav-arrows">
+        <a href="#act10" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 11 de 13</span>
+        <a href="#act12" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 12 ==================== -->
+<section class="slide act12" id="act12">
+    <div class="slide-header">
+        <div class="act-number">12</div>
+        <h2>Sintonizar el PID con los Criterios de Smith</h2>
+    </div>
+
+    <h3>🔧 Procedimiento</h3>
+    <ol class="step-list">
+        <li>Con los valores medidos de <span class="text-green">t<sub>67%</sub></span> y <span class="text-purple">t<sub>23%</sub></span>, calcular <strong>τ</strong> y <strong>L</strong> usando las fórmulas de Smith.</li>
+        <li>Calcular las ganancias PID: <strong>K<sub>c</sub></strong>, <strong>T<sub>i</sub></strong> y <strong>T<sub>d</sub></strong>.</li>
+        <li>Ingresar los valores calculados en los registros del PID del PLC (D800, D801, D802).</li>
+        <li>Ejecutar el lazo cerrado y observar la respuesta de velocidad.</li>
+        <li>Comparar con la respuesta obtenida con K<sub>p</sub> sola (Actividad 9).</li>
+        <li>Realizar ajustes finos si es necesario.</li>
+    </ol>
+
+    <h3>📝 Tabla de Cálculo</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Parámetro</th><th>Fórmula</th><th>Valor</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>t<sub>67%</sub></td><td>Medido</td><td>________ ms</td></tr>
+                <tr><td>t<sub>23%</sub></td><td>Medido</td><td>________ ms</td></tr>
+                <tr class="table-highlight"><td><strong>τ</strong></td><td>1.5 · (t<sub>67%</sub> − t<sub>23%</sub>)</td><td><strong>________ ms</strong></td></tr>
+                <tr class="table-highlight"><td><strong>L</strong></td><td>t<sub>67%</sub> − τ</td><td><strong>________ ms</strong></td></tr>
+                <tr><td>K (ganancia proceso)</td><td>ΔY/ΔU</td><td>________</td></tr>
+                <tr class="table-highlight"><td><strong>K<sub>c</sub></strong></td><td>(1/K) · (τ/L + 1/3)</td><td><strong>________</strong></td></tr>
+                <tr class="table-highlight"><td><strong>T<sub>i</sub></strong></td><td>τ + L/3</td><td><strong>________ ms</strong></td></tr>
+                <tr class="table-highlight"><td><strong>T<sub>d</sub></strong></td><td>(τ·L)/(2τ + L/3)</td><td><strong>________ ms</strong></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    
+
+    <div class="callout success">
+        <div class="callout-icon">🎯</div>
+        <div class="callout-text">
+            <strong>Resultado esperado</strong>
+            El PID sintonizado con el método de Smith debe presentar: menor tiempo de establecimiento, menor sobreoscilación, y <strong>error en estado estacionario igual a cero</strong> (gracias a la acción integral).
+        </div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#act11" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 12 de 13</span>
+        <a href="#act13" class="nav-arrow"><span>Siguiente</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== ACT 13 ==================== -->
+<section class="slide act13" id="act13">
+    <div class="slide-header">
+        <div class="act-number">13</div>
+        <h2>Redacción del Informe Técnico</h2>
+    </div>
+
+    <h3>📄 Estructura del Informe</h3>
+    <ol class="step-list">
+        <li><strong>Portada</strong> — Título, nombres, fecha, curso, institución.</li>
+        <li><strong>Resumen ejecutivo</strong> — Descripción breve del experimento y resultados principales.</li>
+        <li><strong>Introducción</strong> — Contexto del control de velocidad de motores trifásicos, VFD, encoder incremental, control PID.</li>
+        <li><strong>Marco teórico</strong> — Principio de funcionamiento del encoder, módulo DVP06XA, VFD ABB, control PID, método de Smith, modelo FOPDT.</li>
+        <li><strong>Metodología</strong> — Descripción detallada de las 13 actividades realizadas, diagramas de conexión, configuración de equipos.</li>
+        <li><strong>Resultados</strong> — Tablas de datos, gráficas de respuesta, parámetros calculados (τ, L, K<sub>c</sub>, T<sub>i</sub>, T<sub>d</sub>).</li>
+        <li><strong>Análisis y discusión</strong> — Comparación entre control P solo y PID sintonizado, evaluación del método de Smith, fuentes de error.</li>
+        <li><strong>Conclusiones</strong> — Hallazgos principales, eficacia del método de sintonía, recomendaciones.</li>
+        <li><strong>Bibliografía</strong> — Manuales Delta, artículo de Smith, referencias adicionales.</li>
+        <li><strong>Anexos</strong> — Código Ladder completo, capturas de pantalla HMI, tablas de parámetros del VFD.</li>
+    </ol>
+
+    <h3>📊 Contenido Obligatorio del Informe</h3>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Sección</th><th>Contenido</th><th>Incluir</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Conexiones</td><td>Diagramas de cableado</td><td>PLC→VFD, Encoder→PLC, 06XA→VFD</td></tr>
+                <tr><td>VFD ABB</td><td>Tabla de parámetros configurados</td><td>Start source, Frequency ref, rangos</td></tr>
+                <tr><td>Encoder</td><td>PPR, modo de conteo, base SPD</td><td>1024 PPR, ×4, 200 ms</td></tr>
+                <tr><td>HMI</td><td>Capturas de pantalla</td><td>Setpoint, botones, display RPM</td></tr>
+                <tr><td>PID</td><td>Ganancias calculadas</td><td>K<sub>p</sub>, T<sub>i</sub>, T<sub>d</sub> (método Delta + Smith)</td></tr>
+                <tr><td>Respuesta</td><td>Gráficas velocidad vs tiempo</td><td>P solo vs PID Smith</td></tr>
+                <tr><td>Smith</td><td>Cálculo de τ y L</td><td>t<sub>23%</sub>, t<sub>67%</sub>, τ, L, K<sub>c</sub>, T<sub>i</sub>, T<sub>d</sub></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout info">
+        <div class="callout-icon">💡</div>
+        <div class="callout-text">
+            <strong>Criterios de evaluación</strong>
+            El informe será evaluado según: claridad de la exposición, corrección de los cálculos, calidad de las gráficas, profundidad del análisis comparativo y conclusiones fundamentadas en los datos obtenidos.
+        </div>
+    </div>
+
+    <div class="nav-arrows">
+        <a href="#act12" class="nav-arrow prev">← <span>Anterior</span></a>
+        <span class="nav-progress">Actividad 13 de 13</span>
+        <a href="#summary" class="nav-arrow"><span>Resumen</span> →</a>
+    </div>
+</section>
+
+<!-- ==================== RESUMEN ==================== -->
+<section class="slide" id="summary">
+    <div class="slide-header">
+        
+        
+
+    
+</section>
+
+<footer>
+    <p>Guía de Laboratorio 3 — Control de Velocidad en Lazo Cerrado · VFD ABB + PLC Delta SE + Encoder</p>
+    <p style="margin-top: 0.5rem; opacity: 0.8;">Documento generado para uso académico</p>
+</footer>
+
+</body>
+</html>
